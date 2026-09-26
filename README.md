@@ -12,9 +12,11 @@ PDF processing runs locally. No account, API key, or cloud upload is required. T
 - **Automatic font matching:** Reuse embedded or standard PDF fonts when possible, with a close substitute when necessary.
 - **Automatic fitting:** Expand the text box into available space, then reduce font size only if needed.
 - **Formatting controls:** Font family, size, color, bold, and italic.
-- **Simple controls:** Regular tool buttons with a blue active state and explicit ON/OFF formatting buttons.
-- **Undo and redo:** Restore previous edits and moves.
-- **Page navigation:** Page list, Previous/Next, zoom, and Fit Width.
+- **Modern interface:** Menu bar, grouped toolbar with tooltips, a tip bar for the active tool, and a welcome screen with a one-click Practice PDF.
+- **Page thumbnails:** A sidebar of page previews, rendered on demand so large PDFs stay responsive.
+- **Undo and redo:** Restore previous edits and moves; undo jumps to the page that changed.
+- **Page navigation and zoom:** Thumbnails, Previous/Next, a page number box, zoom presets, Fit Width, Fit Page, and Ctrl+mouse wheel zoom.
+- **Change highlight:** Each applied edit or move is briefly outlined so you can review it.
 - **Save As:** Write an edited PDF while protecting the opened source file.
 - **Unsaved-change prompts:** Choose whether to save before closing or opening another file.
 
@@ -64,15 +66,15 @@ On Linux, Tkinter may need to be installed separately through your distribution'
 
 ### Edit existing text
 
-1. Click **Edit Text**.
+1. Click **Edit Text** (or press `E`).
 2. Click a text element on the page. A blue outline identifies selectable text when you hover over it.
 3. Change the text in the dialog.
-4. Leave **Match original formatting: ON** to reuse the existing font and styling where possible, or switch it OFF to use the formatting controls.
+4. Leave **Match original formatting** checked to reuse the existing font and styling where possible, or switch it OFF to use the formatting controls.
 5. Click **Apply** and review the result.
 
 Each selection represents one uniform-format text element. Mixed-style lines may have several independently editable elements.
 
-To delete an element, clear its text, click **Apply**, and confirm the deletion.
+To delete an element, click **Delete text** (or clear its text and click **Apply**), then confirm.
 
 ### Add text
 
@@ -124,9 +126,18 @@ There is no autosave or crash recovery. Save regularly.
 | `Ctrl+O` | Open PDF |
 | `Ctrl+S` | Save As |
 | `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `E` / `M` / `A` | Edit, Move, or Add Text tool |
+| `Page Up` / `Page Down` | Previous / next page |
+| `Home` / `End` | First / last page |
+| `Ctrl++` / `Ctrl+-` | Zoom in / out |
+| `Ctrl+0` / `Ctrl+1` | Fit width / actual size |
+| `F1` | Help |
 | `Escape` | Cancel a drag or close the text dialog |
-| Mouse wheel | Scroll the page |
+| `Ctrl+Enter` | Apply in the text dialog |
+| Mouse wheel | Scroll (`Shift` scrolls sideways, `Ctrl` zooms) |
+
+On macOS, use `Cmd` in place of `Ctrl`.
 
 Inside the text dialog, `Ctrl+Z` undoes typing. Document undo history holds up to 20 changes, subject to its memory budget.
 
@@ -152,9 +163,7 @@ Inside the text dialog, `Ctrl+Z` undoes typing. Document undo history holds up t
 | `START_EDITOR.bat` | Windows setup and launcher |
 | `requirements.txt` | Python dependencies |
 | `Practice.pdf` | Sample PDF for trying the editor |
-| `test_engine.py` | Core PDF editing regression tests |
-| `test_movement.py` | Text movement and font matching tests |
-| `test_autofit.py` | Automatic box expansion and font sizing tests |
+| `test_engine.py` | Regression tests for editing, movement, font matching, auto-fit, and saving |
 | `README.txt` | Bundled plain-text instructions |
 
 Place this README alongside these files in your repository. If you retain an outer `Easy_PDF_Editor` directory, run installation and test commands from inside that directory.
@@ -164,10 +173,10 @@ Place this README alongside these files in your repository. If you retain an out
 From the application directory, run:
 
 ```bash
-python -m unittest -v test_engine test_movement test_autofit
+python -m unittest -v test_engine
 ```
 
-The current suite contains 17 regression tests covering text replacement, Unicode additions, save/reopen, overflow protection, preservation of neighboring content, movement on rotated pages, font matching, repeated moves from clipped PDF form objects, and automatic fitting.
+The suite contains 15 regression tests covering text replacement, Unicode additions, save/reopen, saved-file permissions, overflow protection, preservation of neighboring content, rotated pages, pending redactions, text movement, font matching, and automatic fitting.
 
 PDF engine tests were run on Linux with PyMuPDF 1.26.6. The Windows launcher and desktop interface have not been verified on a Windows machine as part of this validation.
 

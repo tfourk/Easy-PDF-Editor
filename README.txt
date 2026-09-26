@@ -12,13 +12,13 @@ into this folder's private .venv. Later launches work offline.
 EDIT EXISTING TEXT
 Select Edit Text, then click a line on the page. A blue outline appears
 when you move over an editable text element. Type your replacement and Apply.
-The Match Original button is ON by default: it preserves font, size, color and style.
+The Match original formatting box is checked by default: it preserves font, size, color and style.
 Each operation edits one uniform-format element, so mixed styles can be
 edited separately. Turn Match Original OFF to choose custom formatting.
 Auto-fit automatically enlarges the box into available space. It keeps the
 original font size when possible, then reduces the size only if needed. Dimensions
 are in points (72 points = one inch). Review the result on the page.
-Clear the text box and Apply to delete the selected line.
+Click Delete text (or clear the text box and Apply) to delete the selected line.
 
 MOVE TEXT
 Click the Move Text button, click and hold on a text element, drag the dashed outline
@@ -62,7 +62,10 @@ There is no crash recovery or autosave: save regularly.
 
 KEYBOARD
 Ctrl+O: Open    Ctrl+S: Save As    Ctrl+Z: Undo    Ctrl+Y: Redo
-Mouse wheel: scroll. Use page list, Previous/Next, zoom and Fit Width.
+E / M / A: Edit, Move or Add Text tool    Page Up / Page Down: change page
+Ctrl + / Ctrl -: zoom    Ctrl+0: fit width    Ctrl+1: actual size    F1: help
+Mouse wheel: scroll (Shift scrolls sideways, Ctrl zooms). Click a page
+thumbnail on the left to jump to it. Ctrl+Enter applies in the text dialog.
 Inside the text dialog, Ctrl+Z undoes your typing.
 
 WHAT TO EXPECT
