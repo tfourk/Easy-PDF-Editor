@@ -28,7 +28,8 @@ def lines(page):
 
 
 def _change_once(data, page_number, rect, text, size, color, family='sans-serif',
-           bold=False, old=None, match_original=False, italic=False):
+           bold=False, old=None, match_original=False, italic=False, probe=False):
+    """Apply one edit. With probe=True only check that it fits, skipping serialization."""
     if not 4 <= size <= 144:
         raise ValueError('Choose a text size between 4 and 144 points.')
     rect = fitz.Rect(rect)
@@ -77,6 +78,8 @@ def _change_once(data, page_number, rect, text, size, color, family='sans-serif'
             spare, scale = page.insert_htmlbox(rect, safe, css=css, scale_low=1)
             if spare < 0 or scale < .999:
                 raise ValueError('The text does not fit. Make the box wider/taller, use smaller text, or shorten it.')
+        if probe:
+            return True
         return doc.tobytes(garbage=4, deflate=True)
 
 
@@ -85,6 +88,15 @@ def save_atomic(data, destination):
     fd, name = tempfile.mkstemp(prefix='.pdf-editor-', suffix='.pdf', dir=destination.parent)
     os.close(fd)
     try:
+        # mkstemp creates owner-only files. Keep an existing file's mode, or use
+        # the normal umask-based mode for a new file, so saved PDFs stay shareable.
+        try:
+            mode = destination.stat().st_mode & 0o7777
+        except FileNotFoundError:
+            umask = os.umask(0)
+            os.umask(umask)
+            mode = 0o666 & ~umask
+        os.chmod(name, mode)
         with open(name, 'wb') as stream:
             stream.write(data)
             stream.flush()
@@ -155,13 +167,12 @@ def move_text(data, page_number, old, dx, dy):
         # Extract character positions before removing the original. Recreate text in
         # a clean graphics context instead of nesting inherited Form XObject clips.
         span = old['spans'][0]
-        chars = None
-        for block in page.get_text('rawdict')['blocks']:
-            for line in block.get('lines', []):
-                for candidate in line['spans']:
-                    if fitz.Rect(candidate['bbox']) == old['rect'] and ''.join(c['c'] for c in candidate['chars']) == old['text']:
-                        chars = candidate['chars']
-                        break
+        chars = next((candidate['chars']
+                      for block in page.get_text('rawdict')['blocks']
+                      for line in block.get('lines', [])
+                      for candidate in line['spans']
+                      if fitz.Rect(candidate['bbox']) == old['rect']
+                      and ''.join(c['c'] for c in candidate['chars']) == old['text']), None)
         if not chars:
             raise ValueError('Could not safely identify every character. No changes were made.')
         font, _ = resolve_font(page, span, old['text'])
@@ -232,7 +243,7 @@ def change(data, page_number, rect, text, size, color, family='sans-serif',
                     candidates.append(candidate)
     if not candidates:
         raise ValueError('No clear space here. Move the text to a blank area and try again.')
-    def attempt(candidate, trial_size):
+    def adjusted_for(trial_size):
         adjusted = copy.deepcopy(old) if old else None
         if adjusted and match_original:
             span = adjusted['spans'][0]
@@ -241,42 +252,39 @@ def change(data, page_number, rect, text, size, color, family='sans-serif',
             span['origin'] = (span['origin'][0], adjusted['rect'].y0 +
                               (span['origin'][1]-adjusted['rect'].y0)*ratio)
             adjusted['size'] = trial_size
+        return adjusted
+    def fits(candidate, trial_size):
+        # Probing skips serialization, so trials stay fast on large documents.
         try:
-            output = _change_once(data, page_number, candidate, text, trial_size,
-                                  color, family, bold, adjusted, match_original, italic)
-            return output
+            return _change_once(data, page_number, candidate, text, trial_size, color, family,
+                                bold, adjusted_for(trial_size), match_original, italic, probe=True)
         except ValueError as exc:
             if 'does not fit' in str(exc):
-                return None
+                return False
             raise
-    chosen = None
-    for candidate in candidates:
-        output = attempt(candidate, original_size)
-        if output is not None:
-            chosen = (output, candidate, original_size)
-            break
+    chosen = next(((candidate, original_size) for candidate in candidates
+                   if fits(candidate, original_size)), None)
     if chosen is None:
         # Bounded binary search finds a readable size, without silently clipping.
         best_size = 0
         for candidate in candidates:
             low, high = 4.0, original_size
-            output = attempt(candidate, low)
-            if output is None:
+            if not fits(candidate, low):
                 continue
-            best = output
             for _ in range(9):
                 mid = (low+high)/2
-                result = attempt(candidate, mid)
-                if result is None:
-                    high = mid
+                if fits(candidate, mid):
+                    low = mid
                 else:
-                    low, best = mid, result
+                    high = mid
             if low > best_size:
                 best_size = low
-                chosen = (best, candidate, low)
+                chosen = (candidate, low)
         if chosen is None:
             raise ValueError('There is not enough clear page space, even after automatic resizing. Use a shorter passage or move it to a larger blank area.')
-    output, candidate, actual_size = chosen
+    candidate, actual_size = chosen
+    output = _change_once(data, page_number, candidate, text, actual_size, color, family,
+                          bold, adjusted_for(actual_size), match_original, italic)
     if fit_info is not None:
         fit_info.update(rect=tuple(candidate), size=actual_size,
                         resized=candidate != box, shrunk=actual_size < original_size-.01)
